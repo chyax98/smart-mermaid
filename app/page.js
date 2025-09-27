@@ -5,11 +5,12 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Maximize, RotateCw } from "lucide-react";
+import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Maximize, RotateCw, FileText } from "lucide-react";
 import { Header } from "@/components/header";
 import { UndoRedoControls } from "@/components/undo-redo-controls";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { TemplateSelector } from "@/components/template-selector";
 import { TextInput } from "@/components/text-input";
 import { FileUpload } from "@/components/file-upload";
 import { DiagramTypeSelector } from "@/components/diagram-type-selector";
@@ -115,6 +116,7 @@ export default function Home() {
     setIsFixing,
     setShowSettingsDialog,
     setShowLimitDialog,
+    setShowTemplateDialog,
   } = useUIActions();
   
   const { undo, redo, canUndo, canRedo } = useHistoryActions();
@@ -123,13 +125,6 @@ export default function Home() {
   const setPasswordVerified = useAppStore((state) => state.setPasswordVerified);
   const setRemainingUsage = useAppStore((state) => state.setRemainingUsage);
   const setAIConfig = useAppStore((state) => state.setAIConfig);
-  
-  // 使用快捷键Hook
-  const { showShortcutHelp } = useKeyboardShortcuts({
-    onGenerate: handleGenerateClick,
-    onFix: handleAutoFixMermaid,
-    enabled: hydrated,
-  });
 
   useEffect(() => {
     if (!hydrated) return;
@@ -330,6 +325,13 @@ export default function Home() {
     handleStreamChunk
   ]);
 
+  // 使用快捷键Hook（需要在所有函数定义之后）
+  const { showShortcutHelp } = useKeyboardShortcuts({
+    onGenerate: handleGenerateClick,
+    onFix: handleAutoFixMermaid,
+    enabled: hydrated,
+  });
+
   // 如果还没有hydrate，返回loading状态
   if (!hydrated) {
     return (
@@ -464,6 +466,18 @@ export default function Home() {
                   {/* 分隔线 */}
                   <div className="w-px h-6 bg-border" />
                   
+                  {/* 模板按钮 */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTemplateDialog(true)}
+                    className="h-9"
+                    title="选择模板"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden lg:inline ml-2">模板</span>
+                  </Button>
+                  
                   <Button
                     variant="outline"
                     size="sm"
@@ -570,6 +584,12 @@ export default function Home() {
         onConfigUpdated={handleConfigUpdated}
       />
 
+      {/* Template Selector Dialog */}
+      <TemplateSelector 
+        isOpen={ui.showTemplateDialog}
+        onClose={() => setShowTemplateDialog(false)}
+      />
+      
       {/* Usage Limit Dialog */}
       <Dialog open={ui.showLimitDialog} onOpenChange={setShowLimitDialog}>
         <DialogContent className="sm:max-w-md">

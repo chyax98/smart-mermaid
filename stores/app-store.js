@@ -26,6 +26,7 @@ export const useAppStore = create(
         isFixing: false,
         showSettingsDialog: false,
         showLimitDialog: false,
+        showTemplateDialog: false,
       },
 
       // ========== 用户配置 ==========
@@ -120,6 +121,10 @@ export const useAppStore = create(
 
       setShowLimitDialog: (show) => set((state) => ({
         ui: { ...state.ui, showLimitDialog: show }
+      })),
+      
+      setShowTemplateDialog: (show) => set((state) => ({
+        ui: { ...state.ui, showTemplateDialog: show }
       })),
 
       // ========== Actions: 配置操作 ==========
@@ -262,6 +267,7 @@ export const useUIActions = () => useAppStore((state) => ({
   setIsFixing: state.setIsFixing,
   setShowSettingsDialog: state.setShowSettingsDialog,
   setShowLimitDialog: state.setShowLimitDialog,
+  setShowTemplateDialog: state.setShowTemplateDialog,
 }))
 
 export const useHistoryActions = () => useAppStore((state) => ({
