@@ -27,6 +27,8 @@ export const useAppStore = create(
         showSettingsDialog: false,
         showLimitDialog: false,
         showTemplateDialog: false,
+        showBatchDialog: false,
+        showHistoryDialog: false,
       },
 
       // ========== 用户配置 ==========
@@ -125,6 +127,14 @@ export const useAppStore = create(
       
       setShowTemplateDialog: (show) => set((state) => ({
         ui: { ...state.ui, showTemplateDialog: show }
+      })),
+
+      setShowBatchDialog: (show) => set((state) => ({
+        ui: { ...state.ui, showBatchDialog: show }
+      })),
+
+      setShowHistoryDialog: (show) => set((state) => ({
+        ui: { ...state.ui, showHistoryDialog: show }
       })),
 
       // ========== Actions: 配置操作 ==========
@@ -268,6 +278,8 @@ export const useUIActions = () => useAppStore((state) => ({
   setShowSettingsDialog: state.setShowSettingsDialog,
   setShowLimitDialog: state.setShowLimitDialog,
   setShowTemplateDialog: state.setShowTemplateDialog,
+  setShowBatchDialog: state.setShowBatchDialog,
+  setShowHistoryDialog: state.setShowHistoryDialog,
 }))
 
 export const useHistoryActions = () => useAppStore((state) => ({

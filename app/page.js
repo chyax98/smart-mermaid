@@ -5,12 +5,15 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Maximize, RotateCw, FileText } from "lucide-react";
+import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Maximize, RotateCw, FileText, Layers, History } from "lucide-react";
 import { Header } from "@/components/header";
 import { UndoRedoControls } from "@/components/undo-redo-controls";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { TemplateSelector } from "@/components/template-selector";
+import { BatchProcessDialog } from "@/components/batch-process-dialog";
+import { HistoryDialog } from "@/components/history-dialog";
+import { historyManagerService } from "@/lib/history-manager";
 import { TextInput } from "@/components/text-input";
 import { FileUpload } from "@/components/file-upload";
 import { DiagramTypeSelector } from "@/components/diagram-type-selector";
@@ -117,6 +120,8 @@ export default function Home() {
     setShowSettingsDialog,
     setShowLimitDialog,
     setShowTemplateDialog,
+    setShowBatchDialog,
+    setShowHistoryDialog,
   } = useUIActions();
   
   const { undo, redo, canUndo, canRedo } = useHistoryActions();
@@ -141,6 +146,14 @@ export default function Home() {
         setAIConfig(JSON.parse(storedConfig));
       }
     }
+    
+    // 初始化历史管理器自动保存
+    historyManagerService.initAutoSave();
+    
+    // 在组件卸载时清理自动保存定时器
+    return () => {
+      historyManagerService.stopAutoSave();
+    };
   }, [hydrated, setRemainingUsage, setPasswordVerified, setAIConfig]);
 
   const handleTextChange = useCallback((text) => {
@@ -478,6 +491,30 @@ export default function Home() {
                     <span className="hidden lg:inline ml-2">模板</span>
                   </Button>
                   
+                  {/* 批处理按钮 */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBatchDialog(true)}
+                    className="h-9"
+                    title="批量处理"
+                  >
+                    <Layers className="h-4 w-4" />
+                    <span className="hidden lg:inline ml-2">批处理</span>
+                  </Button>
+                  
+                  {/* 历史记录按钮 */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHistoryDialog(true)}
+                    className="h-9"
+                    title="历史记录"
+                  >
+                    <History className="h-4 w-4" />
+                    <span className="hidden lg:inline ml-2">历史</span>
+                  </Button>
+                  
                   <Button
                     variant="outline"
                     size="sm"
@@ -588,6 +625,18 @@ export default function Home() {
       <TemplateSelector 
         isOpen={ui.showTemplateDialog}
         onClose={() => setShowTemplateDialog(false)}
+      />
+
+      {/* Batch Process Dialog */}
+      <BatchProcessDialog 
+        isOpen={ui.showBatchDialog}
+        onClose={() => setShowBatchDialog(false)}
+      />
+
+      {/* History Dialog */}
+      <HistoryDialog 
+        isOpen={ui.showHistoryDialog}
+        onClose={() => setShowHistoryDialog(false)}
       />
       
       {/* Usage Limit Dialog */}
