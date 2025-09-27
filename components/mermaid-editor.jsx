@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Wand2, RotateCw } from "lucide-react";
@@ -8,8 +9,32 @@ import { copyToClipboard } from "@/lib/utils";
 import { autoFixMermaidCode, toggleMermaidDirection } from "@/lib/mermaid-fixer";
 import { toast } from "sonner";
 
-// 新增的流式内容显示组件
-function StreamingDisplay({ content, isStreaming, isFixing }) {
+// 懒加载CodeMirror编辑器
+const CodeMirror = dynamic(
+  () => import('@uiw/react-codemirror').then(mod => mod.default),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="border rounded-md p-3 h-full bg-muted/50 animate-pulse">
+        <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
+        <div className="h-4 bg-muted rounded w-2/3"></div>
+      </div>
+    )
+  }
+);
+
+// 懒加载Mermaid语言支持
+const loadMermaidExtensions = async () => {
+  const [{ mermaid }, { oneDark }] = await Promise.all([
+    import('codemirror-lang-mermaid'),
+    import('@codemirror/theme-one-dark')
+  ]);
+  return [mermaid(), oneDark];
+};
+
+// 流式内容显示组件 - 使用memo优化
+const StreamingDisplay = memo(function StreamingDisplay({ content, isStreaming, isFixing }) {
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -17,7 +42,6 @@ function StreamingDisplay({ content, isStreaming, isFixing }) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [content]);
-
 
   return (
     <div className="space-y-2">
@@ -38,33 +62,56 @@ function StreamingDisplay({ content, isStreaming, isFixing }) {
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // 自定义比较逻辑，只在内容或状态变化时重新渲染
+  return prevProps.content === nextProps.content &&
+         prevProps.isStreaming === nextProps.isStreaming &&
+         prevProps.isFixing === nextProps.isFixing;
+});
 
-export function MermaidEditor({ code, onChange, streamingContent, isStreaming, errorMessage, hasError, onStreamChunk }) {
+// 主编辑器组件 - 使用memo和优化
+export const MermaidEditor = memo(function MermaidEditor({ 
+  code, 
+  onChange, 
+  streamingContent, 
+  isStreaming, 
+  errorMessage, 
+  hasError, 
+  onStreamChunk 
+}) {
   const [copied, setCopied] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
   const [fixingContent, setFixingContent] = useState("");
+  const [extensions, setExtensions] = useState([]);
+  const [extensionsLoaded, setExtensionsLoaded] = useState(false);
 
-  const handleChange = (e) => {
-    onChange(e.target.value);
-  };
+  // 加载CodeMirror扩展
+  useEffect(() => {
+    loadMermaidExtensions().then(exts => {
+      setExtensions(exts);
+      setExtensionsLoaded(true);
+    });
+  }, []);
 
-  const handleCopy = async () => {
+  // 使用useCallback缓存回调函数
+  const handleChange = useCallback((value) => {
+    onChange(value);
+  }, [onChange]);
+
+  const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(code);
-
     if (success) {
       setCopied(true);
       toast.success("已复制到剪贴板");
-
       setTimeout(() => {
         setCopied(false);
       }, 2000);
     } else {
       toast.error("复制失败");
     }
-  };
+  }, [code]);
 
-  const handleAutoFix = async () => {
+  const handleAutoFix = useCallback(async () => {
     if (!code) {
       toast.error("没有代码可以修复");
       return;
@@ -74,21 +121,17 @@ export function MermaidEditor({ code, onChange, streamingContent, isStreaming, e
     setFixingContent("");
 
     try {
-      // 流式修复回调函数
       const handleFixChunk = (chunk) => {
         setFixingContent(prev => prev + chunk);
-        // 如果有父组件的流式回调，也调用它
         if (onStreamChunk) {
           onStreamChunk(chunk);
         }
       };
 
-      // 传递错误信息给AI修复函数
       const result = await autoFixMermaidCode(code, errorMessage, handleFixChunk);
 
       if (result.error) {
         toast.error(result.error);
-        // 如果有基础修复的代码，仍然应用它
         if (result.fixedCode !== code) {
           onChange(result.fixedCode);
           toast.info("已应用基础修复");
@@ -106,11 +149,13 @@ export function MermaidEditor({ code, onChange, streamingContent, isStreaming, e
       toast.error("修复失败，请稍后重试");
     } finally {
       setIsFixing(false);
-      setFixingContent("");
+      setTimeout(() => {
+        setFixingContent("");
+      }, 1000);
     }
-  };
+  }, [code, errorMessage, onChange, onStreamChunk]);
 
-  const handleToggleDirection = () => {
+  const handleToggleDirection = useCallback(() => {
     if (!code) {
       toast.error("没有代码可以切换方向");
       return;
@@ -123,88 +168,125 @@ export function MermaidEditor({ code, onChange, streamingContent, isStreaming, e
     } else {
       toast.info("未检测到可切换的方向");
     }
-  };
+  }, [code, onChange]);
+
+  // 使用useMemo缓存编辑器配置
+  const editorConfig = useMemo(() => ({
+    theme: "dark",
+    height: "100%",
+    basicSetup: {
+      foldGutter: false,
+      dropCursor: false,
+      allowMultipleSelections: false,
+      indentOnInput: true,
+      bracketMatching: true,
+      closeBrackets: true,
+      autocompletion: true,
+      rectangularSelection: false,
+      highlightSelectionMatches: false,
+      searchKeymap: false,
+    }
+  }), []);
+
+  // 决定显示哪个内容
+  const displayContent = isFixing ? fixingContent : streamingContent;
+  const showStreaming = isStreaming || isFixing;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* 流式内容显示区域 - 固定高度 */}
-      <div className="mb-4">
+    <div className="space-y-4 h-full flex flex-col">
+      {showStreaming && displayContent && (
         <StreamingDisplay
-          content={isFixing ? fixingContent : streamingContent}
-          isStreaming={isStreaming || isFixing}
+          content={displayContent}
+          isStreaming={showStreaming}
           isFixing={isFixing}
         />
-      </div>
+      )}
       
-      {/* 编辑器标题栏 - 固定高度 */}
-      <div className="flex justify-between items-center h-8 mb-2">
-        <h3 className="text-sm font-medium">Mermaid 代码</h3>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAutoFix}
-            disabled={!code || isFixing || !hasError}
-            className="h-7 gap-1 text-xs"
-            title={hasError ? "使用AI智能修复代码问题" : "当前代码没有错误，无需修复"}
-          >
-            {isFixing ? (
-              <>
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                <span className="hidden sm:inline">修复中...</span>
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-3 w-3" />
-                <span className="hidden sm:inline">AI修复</span>
-              </>
+      <div className="space-y-2 flex-1 flex flex-col min-h-0">
+        <div className="flex justify-between items-center h-8">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium">Mermaid 代码</h3>
+            {hasError && (
+              <span className="text-xs text-red-500 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                有语法错误
+              </span>
             )}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleDirection}
-            disabled={!code}
-            className="h-7 gap-1 text-xs"
-            title="切换图表方向 (横向/纵向)"
-          >
-            <RotateCw className="h-3 w-3" />
-            <span className="hidden sm:inline">切换方向</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-            disabled={!code}
-            className="h-7 gap-1 text-xs"
-          >
-            {copied ? (
-              <>
-                <Check className="h-3 w-3" />
-                已复制
-              </>
-            ) : (
-              <>
-                <Copy className="h-3 w-3" />
-                复制代码
-              </>
-            )}
-          </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleAutoFix}
+              disabled={!code || isFixing}
+              className="h-8 px-2"
+              title="AI智能修复"
+            >
+              {isFixing ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleToggleDirection}
+              disabled={!code}
+              className="h-8 px-2"
+              title="切换方向"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCopy}
+              disabled={!code}
+              className="h-8 px-2"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+        
+        <div className="flex-1 min-h-0 overflow-hidden border rounded-md">
+          {extensionsLoaded ? (
+            <CodeMirror
+              value={code}
+              onChange={handleChange}
+              extensions={extensions}
+              {...editorConfig}
+            />
+          ) : (
+            <Textarea
+              value={code}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder="在此输入或编辑 Mermaid 代码..."
+              className="h-full resize-none font-mono text-sm border-0"
+            />
+          )}
+        </div>
 
-      {/* 代码编辑器容器 - 占用剩余空间 */}
-      <div className="flex-1 min-h-0">
-        <Textarea
-          value={code}
-          onChange={handleChange}
-          placeholder="生成的 Mermaid 代码将显示在这里..."
-          className="w-full h-full font-mono text-sm mermaid-editor overflow-y-auto resize-none"
-          disabled={isStreaming || isFixing}
-        />
+        {errorMessage && (
+          <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-xs text-red-600 dark:text-red-400">{errorMessage}</p>
+          </div>
+        )}
       </div>
     </div>
   );
-} 
+}, (prevProps, nextProps) => {
+  // 智能比较，避免不必要的重渲染
+  return prevProps.code === nextProps.code &&
+         prevProps.streamingContent === nextProps.streamingContent &&
+         prevProps.isStreaming === nextProps.isStreaming &&
+         prevProps.errorMessage === nextProps.errorMessage &&
+         prevProps.hasError === nextProps.hasError;
+});
+
+export default MermaidEditor;

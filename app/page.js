@@ -13,7 +13,21 @@ import { FileUpload } from "@/components/file-upload";
 import { DiagramTypeSelector } from "@/components/diagram-type-selector";
 import { ModelSelector } from "@/components/model-selector";
 import { MermaidEditor } from "@/components/mermaid-editor";
-import { MermaidRenderer } from "@/components/mermaid-renderer";
+// 动态导入RendererWrapper组件以优化性能
+const RendererWrapper = dynamic(
+  () => import("@/components/renderer-wrapper"),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full flex items-center justify-center bg-muted/10 rounded-lg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">加载渲染器...</p>
+        </div>
+      </div>
+    )
+  }
+);
 import { generateMermaidFromText } from "@/lib/ai-service";
 import { isWithinCharLimit } from "@/lib/utils";
 import { isPasswordVerified, hasCustomAIConfig, hasUnlimitedAccess } from "@/lib/config-service";
@@ -41,7 +55,6 @@ import {
 } from "@/stores/app-store";
 import { useHydration } from "@/hooks/use-store";
 
-const ExcalidrawRenderer = dynamic(() => import("@/components/excalidraw-renderer"), { ssr: false });
 
 const usageLimit = parseInt(process.env.NEXT_PUBLIC_DAILY_USAGE_LIMIT || "5");
 const maxChars = parseInt(process.env.NEXT_PUBLIC_MAX_CHARS || "20000");
@@ -516,18 +529,12 @@ export default function Home() {
 
               {/* 渲染器区域 - 占用剩余空间 */}
               <div className="flex-1 min-h-0 mt-4" style={{ minHeight: '600px' }}>
-                {ui.renderMode === "excalidraw" ? (
-                  <ExcalidrawRenderer
-                    mermaidCode={editor.mermaidCode}
-                    onErrorChange={handleErrorChange}
-                  />
-                ) : (
-                  <MermaidRenderer
-                    mermaidCode={editor.mermaidCode}
-                    onChange={handleMermaidCodeChange}
-                    onErrorChange={handleErrorChange}
-                  />
-                )}
+                <RendererWrapper
+                  renderMode={ui.renderMode}
+                  mermaidCode={editor.mermaidCode}
+                  onChange={handleMermaidCodeChange}
+                  onErrorChange={handleErrorChange}
+                />
               </div>
             </div>
           </div>

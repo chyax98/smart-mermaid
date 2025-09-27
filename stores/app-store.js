@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist, subscribeWithSelector } from 'zustand/middleware'
+import { MEMORY_LIMITS, cleanupHistory, limitTextSize } from '@/lib/memory-optimizer'
 
-const MAX_HISTORY_SIZE = 50
+const MAX_HISTORY_SIZE = MEMORY_LIMITS.MAX_HISTORY_SIZE
 
 export const useAppStore = create(
   persist(
@@ -48,26 +49,27 @@ export const useAppStore = create(
 
       // ========== Actions: 编辑器操作 ==========
       setInputText: (text) => set((state) => ({
-        editor: { ...state.editor, inputText: text }
+        editor: { ...state.editor, inputText: limitTextSize(text, MEMORY_LIMITS.MAX_INPUT_TEXT_SIZE) }
       })),
 
       setMermaidCode: (code) => {
         const state = get()
         const { history } = state
         
+        // 限制代码大小
+        const limitedCode = limitTextSize(code, MEMORY_LIMITS.MAX_MERMAID_CODE_SIZE)
+        
         // 添加到历史记录
-        const newRecords = [
+        let newRecords = [
           ...history.records.slice(0, history.currentIndex + 1),
-          { code, timestamp: Date.now() }
+          { code: limitedCode, timestamp: Date.now() }
         ]
         
-        // 限制历史记录大小
-        if (newRecords.length > MAX_HISTORY_SIZE) {
-          newRecords.shift()
-        }
+        // 清理历史记录
+        newRecords = cleanupHistory(newRecords, MAX_HISTORY_SIZE)
         
         set({
-          editor: { ...state.editor, mermaidCode: code },
+          editor: { ...state.editor, mermaidCode: limitedCode },
           history: {
             records: newRecords,
             currentIndex: newRecords.length - 1
