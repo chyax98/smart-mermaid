@@ -3,9 +3,9 @@
 import { memo, useMemo, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 
-// 懒加载优化版Mermaid渲染器
+// 懒加载增强版Mermaid渲染器（带高级导出功能）
 const MermaidRenderer = dynamic(
-  () => import("./mermaid-renderer-optimized").then(mod => ({ default: mod.MermaidRenderer })),
+  () => import("./mermaid-renderer-enhanced").then(mod => ({ default: mod.MermaidRenderer })),
   {
     ssr: false,
     loading: () => (
@@ -19,9 +19,9 @@ const MermaidRenderer = dynamic(
   }
 );
 
-// 懒加载优化版Excalidraw渲染器
+// 懒加载增强版Excalidraw渲染器（带高级导出功能）
 const ExcalidrawRenderer = dynamic(
-  () => import("./excalidraw-renderer-optimized").then(mod => ({ default: mod.ExcalidrawRenderer })),
+  () => import("./excalidraw-renderer-enhanced").then(mod => ({ default: mod.default })),
   {
     ssr: false,
     loading: () => (
