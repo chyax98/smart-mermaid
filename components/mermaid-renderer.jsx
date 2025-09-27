@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Download, 
@@ -12,7 +12,7 @@ import {
 import { copyToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function MermaidRenderer({ mermaidCode, onChange, onErrorChange }) {
+function MermaidRenderer({ mermaidCode, onChange, onErrorChange }) {
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
   const [copied, setCopied] = useState(false);
@@ -492,4 +492,7 @@ export function MermaidRenderer({ mermaidCode, onChange, onErrorChange }) {
       </div>
     </div>
   );
-} 
+}
+
+// 使用 React.memo 优化性能，避免不必要的重渲染
+export const MermaidRenderer = React.memo(MermaidRenderer); 

@@ -1,8 +1,21 @@
+/**
+ * Smart Mermaid 应用状态管理
+ * 基于 Zustand 的集中式状态管理，支持持久化和订阅
+ * 
+ * @author Smart Mermaid Team
+ * @version 1.0.0
+ */
+
 import { create } from 'zustand'
 import { persist, subscribeWithSelector } from 'zustand/middleware'
 import { MEMORY_LIMITS, cleanupHistory, limitTextSize } from '@/lib/memory-optimizer'
 
 const MAX_HISTORY_SIZE = MEMORY_LIMITS.MAX_HISTORY_SIZE
+
+/**
+ * 应用主状态存储
+ * 包含编辑器状态、UI状态、配置状态、使用统计和历史记录
+ */
 
 export const useAppStore = create(
   persist(
@@ -56,11 +69,18 @@ export const useAppStore = create(
       })),
 
       setMermaidCode: (code) => {
-        const state = get()
-        const { history } = state
-        
-        // 限制代码大小
-        const limitedCode = limitTextSize(code, MEMORY_LIMITS.MAX_MERMAID_CODE_SIZE)
+        try {
+          const state = get()
+          const { history } = state
+          
+          // 类型检查和输入验证
+          if (typeof code !== 'string') {
+            console.warn('setMermaidCode: 输入必须是字符串类型')
+            return
+          }
+          
+          // 限制代码大小
+          const limitedCode = limitTextSize(code, MEMORY_LIMITS.MAX_MERMAID_CODE_SIZE)
         
         // 添加到历史记录
         let newRecords = [
@@ -71,13 +91,20 @@ export const useAppStore = create(
         // 清理历史记录
         newRecords = cleanupHistory(newRecords, MAX_HISTORY_SIZE)
         
-        set({
-          editor: { ...state.editor, mermaidCode: limitedCode },
-          history: {
-            records: newRecords,
-            currentIndex: newRecords.length - 1
-          }
-        })
+          set({
+            editor: { ...state.editor, mermaidCode: limitedCode },
+            history: {
+              records: newRecords,
+              currentIndex: newRecords.length - 1
+            }
+          })
+        } catch (error) {
+          console.error('setMermaidCode error:', error)
+          // 发生错误时仍然设置代码，但不更新历史记录
+          set((state) => ({
+            editor: { ...state.editor, mermaidCode: code || '' }
+          }))
+        }
       },
 
       setDiagramType: (type) => set((state) => ({

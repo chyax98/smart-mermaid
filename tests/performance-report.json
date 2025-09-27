@@ -1,0 +1,103 @@
+{
+  "timestamp": "2025-09-27T17:40:34.636Z",
+  "overallScore": 100,
+  "performanceGrade": "A+ (优秀)",
+  "passedTests": 9,
+  "totalTests": 9,
+  "details": {
+    "memory": {
+      "initial": {
+        "rss": 40779776,
+        "heapTotal": 4431872,
+        "heapUsed": 3721312,
+        "external": 1409607,
+        "arrayBuffers": 10515
+      },
+      "peak": {
+        "rss": 43245568,
+        "heapTotal": 8888320,
+        "heapUsed": 4928904,
+        "external": 1409647,
+        "arrayBuffers": 10515
+      },
+      "afterGC": {
+        "rss": 43245568,
+        "heapTotal": 8888320,
+        "heapUsed": 4933696,
+        "external": 1409647,
+        "arrayBuffers": 10515
+      },
+      "increase": 1.156219482421875,
+      "passed": true
+    },
+    "cpu": [
+      {
+        "name": "小型Mermaid代码解析",
+        "totalTime": 0.954906,
+        "avgTime": 0.000954906,
+        "throughput": 1047223.4963441427,
+        "passed": true
+      },
+      {
+        "name": "大型Mermaid代码解析",
+        "totalTime": 2.723475,
+        "avgTime": 0.027234750000000002,
+        "throughput": 36717.7961978722,
+        "passed": true
+      },
+      {
+        "name": "模板匹配算法",
+        "totalTime": 15.057464,
+        "avgTime": 0.030114928,
+        "throughput": 33206.12289028219,
+        "passed": true
+      }
+    ],
+    "concurrency": [
+      {
+        "name": "批量代码生成模拟",
+        "totalTime": 150,
+        "avgTaskTime": 95,
+        "efficiency": 6.333333333333333,
+        "passed": true
+      },
+      {
+        "name": "批量导出模拟",
+        "totalTime": 201,
+        "avgTaskTime": 120,
+        "efficiency": 2.985074626865672,
+        "passed": true
+      }
+    ],
+    "fileIO": [
+      {
+        "name": "小文件读写 (1KB)",
+        "avgWriteTime": 0.03204494,
+        "avgReadTime": 0.02744765,
+        "writeSpeed": 31206.174828225612,
+        "readSpeed": 36432.991531151114,
+        "passed": true
+      },
+      {
+        "name": "中等文件读写 (10KB)",
+        "avgWriteTime": 0.0392785,
+        "avgReadTime": 0.04290936,
+        "writeSpeed": 254592.20693254579,
+        "readSpeed": 233049.38596147785,
+        "passed": true
+      },
+      {
+        "name": "大文件读写 (100KB)",
+        "avgWriteTime": 0.1191179,
+        "avgReadTime": 0.07130260000000001,
+        "writeSpeed": 839504.3901882084,
+        "readSpeed": 1402473.4020919292,
+        "passed": true
+      }
+    ]
+  },
+  "recommendations": [
+    "性能表现优秀，建议继续监控关键指标",
+    "可以考虑实现更高级的性能监控"
+  ]
+}
