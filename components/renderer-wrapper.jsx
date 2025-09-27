@@ -19,9 +19,9 @@ const MermaidRenderer = dynamic(
   }
 );
 
-// 懒加载Excalidraw渲染器
+// 懒加载优化版Excalidraw渲染器
 const ExcalidrawRenderer = dynamic(
-  () => import("./excalidraw-renderer"),
+  () => import("./excalidraw-renderer-optimized").then(mod => ({ default: mod.ExcalidrawRenderer })),
   {
     ssr: false,
     loading: () => (
@@ -71,7 +71,7 @@ export const RendererWrapper = memo(function RendererWrapper({
     const preloadTimer = setTimeout(() => {
       if (renderMode === "mermaid" && !preloadedRenderers.has("excalidraw")) {
         // 预加载Excalidraw
-        import("./excalidraw-renderer").then(() => {
+        import("./excalidraw-renderer-optimized").then(() => {
           setPreloadedRenderers(prev => new Set(prev).add("excalidraw"));
         });
       } else if (renderMode === "excalidraw" && !preloadedRenderers.has("mermaid")) {
