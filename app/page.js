@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Maximize, RotateCw } from "lucide-react";
 import { Header } from "@/components/header";
+import { UndoRedoControls } from "@/components/undo-redo-controls";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { TextInput } from "@/components/text-input";
 import { FileUpload } from "@/components/file-upload";
@@ -121,6 +123,13 @@ export default function Home() {
   const setPasswordVerified = useAppStore((state) => state.setPasswordVerified);
   const setRemainingUsage = useAppStore((state) => state.setRemainingUsage);
   const setAIConfig = useAppStore((state) => state.setAIConfig);
+  
+  // 使用快捷键Hook
+  const { showShortcutHelp } = useKeyboardShortcuts({
+    onGenerate: handleGenerateClick,
+    onFix: handleAutoFixMermaid,
+    enabled: hydrated,
+  });
 
   useEffect(() => {
     if (!hydrated) return;
@@ -449,6 +458,12 @@ export default function Home() {
                 </Button>
 
                 <div className="flex items-center gap-2">
+                  {/* 撤销/重做控制 */}
+                  <UndoRedoControls />
+                  
+                  {/* 分隔线 */}
+                  <div className="w-px h-6 bg-border" />
+                  
                   <Button
                     variant="outline"
                     size="sm"
