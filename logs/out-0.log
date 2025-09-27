@@ -1,0 +1,40 @@
+2025-09-18 00:35 +08:00: 
+2025-09-18 00:35 +08:00: > smart-mermaid@1.2.0 start
+2025-09-18 00:35 +08:00: > next start
+2025-09-18 00:35 +08:00: 
+2025-09-18 00:35 +08:00:    ▲ Next.js 15.3.2
+2025-09-18 00:35 +08:00:    - Local:        http://localhost:3000
+2025-09-18 00:35 +08:00:    - Network:      http://172.16.0.3:3000
+2025-09-18 00:35 +08:00: 
+2025-09-18 00:35 +08:00:  ✓ Starting...
+2025-09-18 00:35 +08:00:  ✓ Ready in 433ms
+2025-09-18 00:47 +08:00: Using AI config: {
+2025-09-18 00:47 +08:00:   url: 'https://ai.hybgzs.com/v1/chat/completions',
+2025-09-18 00:47 +08:00:   modelName: 'gemini-2.5-pro',
+2025-09-18 00:47 +08:00:   hasApiKey: true
+2025-09-18 00:47 +08:00: }
+2025-09-18 00:47 +08:00: Using AI config: {
+2025-09-18 00:47 +08:00:   url: 'https://ai.hybgzs.com/v1/chat/completions',
+2025-09-18 00:47 +08:00:   modelName: 'gemini-2.5-pro',
+2025-09-18 00:47 +08:00:   hasApiKey: true
+2025-09-18 00:47 +08:00: }
+2025-09-18 00:48 +08:00: Using AI config: {
+2025-09-18 00:48 +08:00:   url: 'https://ai.hybgzs.com/v1/chat/completions',
+2025-09-18 00:48 +08:00:   modelName: 'gemini-2.5-pro',
+2025-09-18 00:48 +08:00:   hasApiKey: true
+2025-09-18 00:48 +08:00: }
+2025-09-20 12:29 +08:00: Using AI config: {
+2025-09-20 12:29 +08:00:   url: 'https://ai.hybgzs.com/v1/chat/completions',
+2025-09-20 12:29 +08:00:   modelName: 'gemini-2.5-pro',
+2025-09-20 12:29 +08:00:   hasApiKey: true
+2025-09-20 12:29 +08:00: }
+2025-09-20 12:49 +08:00: Using AI config: {
+2025-09-20 12:49 +08:00:   url: 'https://ai.hybgzs.com/v1/chat/completions',
+2025-09-20 12:49 +08:00:   modelName: 'gemini-2.5-pro',
+2025-09-20 12:49 +08:00:   hasApiKey: true
+2025-09-20 12:49 +08:00: }
+2025-09-25 22:09 +08:00: Using AI config: {
+2025-09-25 22:09 +08:00:   url: 'https://ai.hybgzs.com/v1/chat/completions',
+2025-09-25 22:09 +08:00:   modelName: 'gemini-2.5-pro',
+2025-09-25 22:09 +08:00:   hasApiKey: true
+2025-09-25 22:09 +08:00: }

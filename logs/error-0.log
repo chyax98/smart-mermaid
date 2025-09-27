@@ -1,0 +1,10 @@
+2025-09-18 00:35 +08:00:  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-09-18 00:47 +08:00: Error parsing chunk: SyntaxError: Unterminated string in JSON at position 444
+2025-09-18 00:47 +08:00:     at JSON.parse (<anonymous>)
+2025-09-18 00:47 +08:00:     at Object.start (.next/server/app/api/generate-mermaid/route.js:34:948)
+2025-09-18 00:47 +08:00: Error parsing chunk: SyntaxError: Unterminated string in JSON at position 443
+2025-09-18 00:47 +08:00:     at JSON.parse (<anonymous>)
+2025-09-18 00:47 +08:00:     at Object.start (.next/server/app/api/generate-mermaid/route.js:34:948)
+2025-09-18 00:48 +08:00: Error parsing chunk: SyntaxError: Unterminated string in JSON at position 450
+2025-09-18 00:48 +08:00:     at JSON.parse (<anonymous>)
+2025-09-18 00:48 +08:00:     at Object.start (.next/server/app/api/generate-mermaid/route.js:34:948)

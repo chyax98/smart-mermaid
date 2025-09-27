@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Maximize, RotateCw } from "lucide-react";
 import { Header } from "@/components/header";
@@ -14,6 +14,7 @@ import { DiagramTypeSelector } from "@/components/diagram-type-selector";
 import { ModelSelector } from "@/components/model-selector";
 import { MermaidEditor } from "@/components/mermaid-editor";
 import { MermaidRenderer } from "@/components/mermaid-renderer";
+// import { ExcalidrawRenderer } from "@/components/excalidraw-renderer";
 import { generateMermaidFromText } from "@/lib/ai-service";
 import { isWithinCharLimit } from "@/lib/utils";
 import { isPasswordVerified, hasCustomAIConfig, hasUnlimitedAccess } from "@/lib/config-service";
@@ -28,34 +29,20 @@ import {
 } from "@/components/ui/dialog";
 import dynamic from "next/dynamic";
 
-// Import Zustand store and hooks
-import { 
-  useAppStore, 
-  useEditorState, 
-  useUIState, 
-  useConfigState, 
-  useUsageState,
-  useEditorActions,
-  useUIActions,
-  useHistoryActions
-} from "@/stores/app-store";
-import { useHydration } from "@/hooks/use-store";
-
 const ExcalidrawRenderer = dynamic(() => import("@/components/excalidraw-renderer"), { ssr: false });
 
 const usageLimit = parseInt(process.env.NEXT_PUBLIC_DAILY_USAGE_LIMIT || "5");
-const maxChars = parseInt(process.env.NEXT_PUBLIC_MAX_CHARS || "20000");
 
 // Usage tracking functions
 const checkUsageLimit = () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const usageData = JSON.parse(localStorage.getItem('usageData') || '{}');
   const todayUsage = usageData[today] || 0;
-  return todayUsage < usageLimit;
+  return todayUsage < usageLimit; // Return true if within limit
 };
 
 const incrementUsage = () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const usageData = JSON.parse(localStorage.getItem('usageData') || '{}');
   
   if (!usageData[today]) {
@@ -66,119 +53,123 @@ const incrementUsage = () => {
   localStorage.setItem('usageData', JSON.stringify(usageData));
 };
 
+const checkAndIncrementUsage = () => {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const usageData = JSON.parse(localStorage.getItem('usageData') || '{}');
+  
+  if (!usageData[today]) {
+    usageData[today] = 0;
+  }
+  
+  if (usageData[today] >= usageLimit) {
+    return false; // Limit exceeded
+  }
+  
+  usageData[today] += 1;
+  localStorage.setItem('usageData', JSON.stringify(usageData));
+  return true; // Within limit
+};
+
 const getRemainingUsage = () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const usageData = JSON.parse(localStorage.getItem('usageData') || '{}');
   const todayUsage = usageData[today] || 0;
   return Math.max(0, usageLimit - todayUsage);
 };
 
+
+
 export default function Home() {
-  // 检查是否已完成hydration
-  const hydrated = useHydration();
+  const [inputText, setInputText] = useState("");
+  const [mermaidCode, setMermaidCode] = useState("");
+  const [diagramType, setDiagramType] = useState("auto");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [remainingUsage, setRemainingUsage] = useState(5);
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const [hasCustomConfig, setHasCustomConfig] = useState(false);
   
-  // 使用Zustand store
-  const editor = useEditorState();
-  const ui = useUIState();
-  const config = useConfigState();
-  const usage = useUsageState();
+  // 新增状态：左侧面板折叠和渲染模式
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [renderMode, setRenderMode] = useState("excalidraw"); // "excalidraw" | "mermaid"
+  const [isFixing, setIsFixing] = useState(false);
+
+  // 错误状态管理
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [hasError, setHasError] = useState(false);
   
-  // Actions
-  const {
-    setInputText,
-    setMermaidCode,
-    setDiagramType,
-    setStreamingContent,
-    setIsStreaming,
-    setError,
-  } = useEditorActions();
-  
-  const {
-    toggleLeftPanel,
-    toggleRenderMode,
-    setIsGenerating,
-    setIsFixing,
-    setShowSettingsDialog,
-    setShowLimitDialog,
-  } = useUIActions();
-  
-  const { undo, redo, canUndo, canRedo } = useHistoryActions();
-  
-  // Store actions
-  const setPasswordVerified = useAppStore((state) => state.setPasswordVerified);
-  const setRemainingUsage = useAppStore((state) => state.setRemainingUsage);
-  const setAIConfig = useAppStore((state) => state.setAIConfig);
+  const maxChars = parseInt(process.env.NEXT_PUBLIC_MAX_CHARS || "20000");
 
   useEffect(() => {
-    if (!hydrated) return;
-    
     // Update remaining usage count on component mount
     setRemainingUsage(getRemainingUsage());
     // Check password verification status
     setPasswordVerified(isPasswordVerified());
     // Check custom AI config status
-    const hasConfig = hasCustomAIConfig();
-    if (hasConfig) {
-      const storedConfig = localStorage.getItem('aiConfig');
-      if (storedConfig) {
-        setAIConfig(JSON.parse(storedConfig));
-      }
-    }
-  }, [hydrated, setRemainingUsage, setPasswordVerified, setAIConfig]);
+    setHasCustomConfig(hasCustomAIConfig());
+  }, []);
 
-  const handleTextChange = useCallback((text) => {
+  const handleTextChange = (text) => {
     setInputText(text);
-  }, [setInputText]);
+  };
 
-  const handleFileTextExtracted = useCallback((text) => {
+  const handleFileTextExtracted = (text) => {
     setInputText(text);
-  }, [setInputText]);
+  };
 
-  const handleDiagramTypeChange = useCallback((type) => {
+  const handleDiagramTypeChange = (type) => {
     setDiagramType(type);
-  }, [setDiagramType]);
+  };
 
-  const handleMermaidCodeChange = useCallback((code) => {
+  const handleMermaidCodeChange = (code) => {
     setMermaidCode(code);
-  }, [setMermaidCode]);
+  };
 
-  const handleStreamChunk = useCallback((chunk) => {
-    setStreamingContent((editor.streamingContent || '') + chunk);
-  }, [setStreamingContent, editor.streamingContent]);
+  const handleStreamChunk = (chunk) => {
+    setStreamingContent(prev => prev + chunk);
+  };
 
-  const handleSettingsClick = useCallback(() => {
+  const handleSettingsClick = () => {
     setShowSettingsDialog(true);
-  }, [setShowSettingsDialog]);
+  };
 
-  const handlePasswordVerified = useCallback((verified) => {
+
+  const handlePasswordVerified = (verified) => {
     setPasswordVerified(verified);
-  }, [setPasswordVerified]);
+  };
 
-  const handleConfigUpdated = useCallback(() => {
+  const handleConfigUpdated = () => {
     // 重新检查自定义配置状态
-    const hasConfig = hasCustomAIConfig();
-    if (hasConfig) {
-      const storedConfig = localStorage.getItem('aiConfig');
-      if (storedConfig) {
-        setAIConfig(JSON.parse(storedConfig));
-      }
-    }
-  }, [setAIConfig]);
+    setHasCustomConfig(hasCustomAIConfig());
+  };
 
   // 处理错误状态变化
-  const handleErrorChange = useCallback((error, hasErr) => {
-    setError(error, hasErr);
-  }, [setError]);
+  const handleErrorChange = (error, hasErr) => {
+    setErrorMessage(error);
+    setHasError(hasErr);
+  };
+
+  // 切换左侧面板
+  const toggleLeftPanel = () => {
+    setIsLeftPanelCollapsed(!isLeftPanelCollapsed);
+  };
+
+  // 切换渲染模式
+  const toggleRenderMode = () => {
+    setRenderMode(prev => prev === "excalidraw" ? "mermaid" : "excalidraw");
+  };
 
   // 使用useCallback优化ModelSelector的回调
   const handleModelChange = useCallback((modelId) => {
     console.log('Selected model:', modelId);
-    useAppStore.getState().setSelectedModel(modelId);
   }, []);
 
   // 自动修复Mermaid代码
-  const handleAutoFixMermaid = useCallback(async () => {
-    if (!editor.mermaidCode) {
+  const handleAutoFixMermaid = async () => {
+    if (!mermaidCode) {
       toast.error("没有代码可以修复");
       return;
     }
@@ -189,21 +180,21 @@ export default function Home() {
     try {
       // 流式修复回调函数
       const handleFixChunk = (chunk) => {
-        setStreamingContent((prev) => (prev || '') + chunk);
+        setStreamingContent(prev => prev + chunk);
       };
 
       // 传递错误信息给AI修复函数
-      const result = await autoFixMermaidCode(editor.mermaidCode, editor.errorMessage, handleFixChunk);
+      const result = await autoFixMermaidCode(mermaidCode, errorMessage, handleFixChunk);
 
       if (result.error) {
         toast.error(result.error);
         // 如果有基础修复的代码，仍然应用它
-        if (result.fixedCode !== editor.mermaidCode) {
+        if (result.fixedCode !== mermaidCode) {
           setMermaidCode(result.fixedCode);
           toast.info("已应用基础修复");
         }
       } else {
-        if (result.fixedCode !== editor.mermaidCode) {
+        if (result.fixedCode !== mermaidCode) {
           setMermaidCode(result.fixedCode);
           toast.success("AI修复完成");
         } else {
@@ -220,31 +211,31 @@ export default function Home() {
         setStreamingContent("");
       }, 1000);
     }
-  }, [editor.mermaidCode, editor.errorMessage, setIsFixing, setStreamingContent, setMermaidCode]);
+  };
 
   // 切换图表方向
-  const handleToggleMermaidDirection = useCallback(() => {
-    if (!editor.mermaidCode) {
+  const handleToggleMermaidDirection = () => {
+    if (!mermaidCode) {
       toast.error("没有代码可以切换方向");
       return;
     }
 
-    const toggledCode = toggleMermaidDirection(editor.mermaidCode);
-    if (toggledCode !== editor.mermaidCode) {
+    const toggledCode = toggleMermaidDirection(mermaidCode);
+    if (toggledCode !== mermaidCode) {
       setMermaidCode(toggledCode);
       toast.success("图表方向已切换");
     } else {
       toast.info("未检测到可切换的方向");
     }
-  }, [editor.mermaidCode, setMermaidCode]);
+  };
 
-  const handleGenerateClick = useCallback(async () => {
-    if (!editor.inputText?.trim()) {
+  const handleGenerateClick = async () => {
+    if (!inputText.trim()) {
       toast.error("请输入文本内容");
       return;
     }
 
-    if (!isWithinCharLimit(editor.inputText, maxChars)) {
+    if (!isWithinCharLimit(inputText, maxChars)) {
       toast.error(`文本超过${maxChars}字符限制`);
       return;
     }
@@ -266,8 +257,8 @@ export default function Home() {
 
     try {
       const { mermaidCode: generatedCode, error } = await generateMermaidFromText(
-        editor.inputText,
-        editor.diagramType,
+        inputText,
+        diagramType,
         handleStreamChunk
       );
 
@@ -296,47 +287,28 @@ export default function Home() {
       setIsGenerating(false);
       setIsStreaming(false);
     }
-  }, [
-    editor.inputText, 
-    editor.diagramType,
-    setIsGenerating, 
-    setIsStreaming, 
-    setStreamingContent, 
-    setMermaidCode, 
-    setShowLimitDialog,
-    setRemainingUsage,
-    handleStreamChunk
-  ]);
-
-  // 如果还没有hydrate，返回loading状态
-  if (!hydrated) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header 
-        remainingUsage={usage.remainingUsage}
+        remainingUsage={remainingUsage}
         usageLimit={usageLimit}
         onSettingsClick={handleSettingsClick}
-        isPasswordVerified={config.passwordVerified}
-        hasCustomConfig={config.hasCustomConfig}
+        isPasswordVerified={passwordVerified}
+        hasCustomConfig={hasCustomConfig}
       />
       
       <main className="flex-1 overflow-hidden">
         <div className="h-full p-4 md:p-6">
           <div 
             className={`h-full grid gap-4 md:gap-6 transition-all duration-300 ${
-              ui.isLeftPanelCollapsed ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'
+              isLeftPanelCollapsed ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'
             }`}
           >
             {/* 左侧面板 */}
             <div className={`${
-              ui.isLeftPanelCollapsed ? 'hidden md:hidden' : 'col-span-1'
+              isLeftPanelCollapsed ? 'hidden md:hidden' : 'col-span-1'
             } flex flex-col h-full overflow-hidden`}>
               
               <Tabs defaultValue="manual" className="flex flex-col h-full">
@@ -350,7 +322,7 @@ export default function Home() {
                     <ModelSelector onModelChange={handleModelChange} />
                     <div className="flex-1 md:flex-none min-w-0">
                       <DiagramTypeSelector 
-                        value={editor.diagramType} 
+                        value={diagramType} 
                         onChange={handleDiagramTypeChange} 
                       />
                     </div>
@@ -363,7 +335,7 @@ export default function Home() {
                   <div className="h-40 md:h-56 flex-shrink-0">
                     <TabsContent value="manual" className="h-full mt-0">
                       <TextInput 
-                        value={editor.inputText} 
+                        value={inputText} 
                         onChange={handleTextChange} 
                         maxChars={maxChars}
                       />
@@ -377,10 +349,10 @@ export default function Home() {
                   <div className="h-16 flex items-center flex-shrink-0">
                     <Button 
                       onClick={handleGenerateClick} 
-                      disabled={ui.isGenerating || !editor.inputText?.trim() || !isWithinCharLimit(editor.inputText, maxChars)}
+                      disabled={isGenerating || !inputText.trim() || !isWithinCharLimit(inputText, maxChars)}
                       className="w-full h-10"
                     >
-                      {ui.isGenerating ? (
+                      {isGenerating ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background mr-2"></div>
                           生成中...
@@ -397,12 +369,12 @@ export default function Home() {
                   {/* 编辑器区域 - 占用剩余空间 */}
                   <div className="flex-1 min-h-0">
                     <MermaidEditor
-                      code={editor.mermaidCode}
+                      code={mermaidCode}
                       onChange={handleMermaidCodeChange}
-                      streamingContent={editor.streamingContent}
-                      isStreaming={editor.isStreaming}
-                      errorMessage={editor.errorMessage}
-                      hasError={editor.hasError}
+                      streamingContent={streamingContent}
+                      isStreaming={isStreaming}
+                      errorMessage={errorMessage}
+                      hasError={hasError}
                       onStreamChunk={handleStreamChunk}
                     />
                   </div>
@@ -412,7 +384,7 @@ export default function Home() {
             
             {/* 右侧面板 */}
             <div className={`${
-              ui.isLeftPanelCollapsed ? 'col-span-1' : 'col-span-1 md:col-span-2'
+              isLeftPanelCollapsed ? 'col-span-1' : 'col-span-1 md:col-span-2'
             } flex flex-col h-full overflow-hidden`}>
               {/* 控制按钮栏 - 固定高度 */}
               <div className="h-12 flex justify-between items-center flex-shrink-0">
@@ -422,7 +394,7 @@ export default function Home() {
                   onClick={toggleLeftPanel}
                   className="h-9"
                 >
-                  {ui.isLeftPanelCollapsed ? (
+                  {isLeftPanelCollapsed ? (
                     <>
                       <PanelLeftOpen className="h-4 w-4" />
                       <span className="hidden sm:inline ml-2">显示编辑面板</span>
@@ -440,11 +412,11 @@ export default function Home() {
                     variant="outline"
                     size="sm"
                     onClick={handleAutoFixMermaid}
-                    disabled={!editor.mermaidCode || ui.isFixing || !editor.hasError}
+                    disabled={!mermaidCode || isFixing || !hasError}
                     className="h-9"
-                    title={editor.hasError ? "使用AI智能修复代码问题" : "当前代码没有错误，无需修复"}
+                    title={hasError ? "使用AI智能修复代码问题" : "当前代码没有错误，无需修复"}
                   >
-                    {ui.isFixing ? (
+                    {isFixing ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                         <span className="hidden lg:inline ml-2">修复中...</span>
@@ -461,7 +433,7 @@ export default function Home() {
                     variant="outline"
                     size="sm"
                     onClick={handleToggleMermaidDirection}
-                    disabled={!editor.mermaidCode}
+                    disabled={!mermaidCode}
                     className="h-9"
                     title="切换图表方向 (横向/纵向)"
                   >
@@ -475,7 +447,7 @@ export default function Home() {
                     onClick={toggleRenderMode}
                     className="h-9"
                   >
-                    {ui.renderMode === "excalidraw" ? (
+                    {renderMode === "excalidraw" ? (
                       <>
                         <FileImage className="h-4 w-4" />
                         <span className="hidden sm:inline ml-2">Mermaid</span>
@@ -516,14 +488,14 @@ export default function Home() {
 
               {/* 渲染器区域 - 占用剩余空间 */}
               <div className="flex-1 min-h-0 mt-4" style={{ minHeight: '600px' }}>
-                {ui.renderMode === "excalidraw" ? (
+                {renderMode === "excalidraw" ? (
                   <ExcalidrawRenderer
-                    mermaidCode={editor.mermaidCode}
+                    mermaidCode={mermaidCode}
                     onErrorChange={handleErrorChange}
                   />
                 ) : (
                   <MermaidRenderer
-                    mermaidCode={editor.mermaidCode}
+                    mermaidCode={mermaidCode}
                     onChange={handleMermaidCodeChange}
                     onErrorChange={handleErrorChange}
                   />
@@ -542,14 +514,15 @@ export default function Home() {
 
       {/* Settings Dialog */}
       <SettingsDialog 
-        open={ui.showSettingsDialog} 
+        open={showSettingsDialog} 
         onOpenChange={setShowSettingsDialog}
         onPasswordVerified={handlePasswordVerified}
         onConfigUpdated={handleConfigUpdated}
       />
 
+
       {/* Usage Limit Dialog */}
-      <Dialog open={ui.showLimitDialog} onOpenChange={setShowLimitDialog}>
+      <Dialog open={showLimitDialog} onOpenChange={setShowLimitDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>使用次数已达上限</DialogTitle>

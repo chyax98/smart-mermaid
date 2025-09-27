@@ -162,12 +162,12 @@ export function SettingsDialog({ open, onOpenChange, onPasswordVerified, onConfi
           </DialogTitle>
           <DialogDescription>
             配置系统访问权限和AI服务参数
-            <div className="mt-2 p-2 bg-blue-50 rounded-md border-l-4 border-blue-400">
-              <p className="text-sm text-blue-700">
-                💡 解锁无限使用：①输入访问密码 或 ②配置您的AI服务。同时配置时优先使用AI服务。
-              </p>
-            </div>
           </DialogDescription>
+          <div className="mt-2 p-2 bg-blue-50 rounded-md border-l-4 border-blue-400">
+            <p className="text-sm text-blue-700">
+              💡 解锁无限使用：①输入访问密码 或 ②配置您的AI服务。同时配置时优先使用AI服务。
+            </p>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="password" className="w-full">

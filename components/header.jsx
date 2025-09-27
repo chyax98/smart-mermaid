@@ -13,6 +13,7 @@ export function Header({
   hasCustomConfig = false 
 }) {
   const hasUnlimitedAccess = isPasswordVerified || hasCustomConfig;
+  const hideContactInfo = process.env.NEXT_PUBLIC_HIDE_CONTACT_INFO === 'true';
 
   return (
     <header className="border-b">
@@ -29,15 +30,17 @@ export function Header({
               <span className="text-green-600 font-semibold">无限量</span>
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onContactClick}
-                  title="联系作者获取更多使用次数"
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {!hideContactInfo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onContactClick}
+                    title="联系作者获取更多使用次数"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
                 剩余: <span className={remainingUsage <= 1 ? "text-red-500 font-bold" : "text-green-600 font-semibold"}>{remainingUsage}</span>/{usageLimit}
               </>
             )}
