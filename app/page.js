@@ -195,6 +195,15 @@ export default function Home() {
     }
   }, [setAIConfig]);
 
+  // 批处理和历史记录处理函数
+  const handleBatchProcessClick = useCallback(() => {
+    setShowBatchDialog(true);
+  }, [setShowBatchDialog]);
+
+  const handleHistoryClick = useCallback(() => {
+    setShowHistoryDialog(true);
+  }, [setShowHistoryDialog]);
+
   // 处理错误状态变化
   const handleErrorChange = useCallback((error, hasErr) => {
     setError(error, hasErr);
@@ -360,6 +369,8 @@ export default function Home() {
         remainingUsage={usage.remainingUsage}
         usageLimit={usageLimit}
         onSettingsClick={handleSettingsClick}
+        onBatchProcessClick={handleBatchProcessClick}
+        onHistoryClick={handleHistoryClick}
         isPasswordVerified={config.passwordVerified}
         hasCustomConfig={config.hasCustomConfig}
       />

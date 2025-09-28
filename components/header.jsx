@@ -2,13 +2,15 @@
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { FileCode2, Github, Settings, Plus } from "lucide-react";
+import { FileCode2, Github, Settings, Plus, Archive, History } from "lucide-react";
 
 export function Header({ 
   remainingUsage = 0, 
   usageLimit = parseInt(process.env.NEXT_PUBLIC_DAILY_USAGE_LIMIT || "5"), 
   onSettingsClick, 
   onContactClick,
+  onBatchProcessClick,
+  onHistoryClick,
   isPasswordVerified = false,
   hasCustomConfig = false 
 }) {
@@ -45,6 +47,22 @@ export function Header({
               </>
             )}
           </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onBatchProcessClick}
+            title="批处理"
+          >
+            <Archive className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onHistoryClick}
+            title="历史记录"
+          >
+            <History className="h-5 w-5" />
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
