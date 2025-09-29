@@ -38,25 +38,9 @@ import {
   HistoryDialogNoSSR,
   SettingsDialogNoSSR,
   MermaidRendererNoSSR,
-  ExcalidrawRendererNoSSR,
   MermaidEditorNoSSR
 } from "@/components/dynamic-no-ssr";
 
-// 动态导入RendererWrapper组件以优化性能
-const RendererWrapper = dynamic(
-  () => import("@/components/renderer-wrapper"),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="h-full w-full flex items-center justify-center bg-muted/10 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">加载渲染器...</p>
-        </div>
-      </div>
-    )
-  }
-);
 
 // Import Zustand store and hooks
 import { 
@@ -128,7 +112,6 @@ export default function Home() {
   
   const {
     toggleLeftPanel,
-    toggleRenderMode,
     setIsGenerating,
     setIsFixing,
     setShowSettingsDialog,
@@ -584,24 +567,6 @@ export default function Home() {
                     <span className="hidden lg:inline ml-2">切换方向</span>
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleRenderMode}
-                    className="h-9"
-                  >
-                    {ui.renderMode === "excalidraw" ? (
-                      <>
-                        <FileImage className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-2">Mermaid</span>
-                      </>
-                    ) : (
-                      <>
-                        <Monitor className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-2">Excalidraw</span>
-                      </>
-                    )}
-                  </Button>
 
                   <Button
                     variant="outline"
@@ -631,11 +596,10 @@ export default function Home() {
 
               {/* 渲染器区域 - 占用剩余空间 */}
               <div className="flex-1 min-h-0 mt-4" style={{ minHeight: '600px' }}>
-                <RendererWrapper
-                  renderMode={ui.renderMode}
-                  mermaidCode={editor.mermaidCode}
+                <MermaidRendererNoSSR
+                  code={editor.mermaidCode}
                   onChange={handleMermaidCodeChange}
-                  onErrorChange={handleErrorChange}
+                  onError={handleErrorChange}
                 />
               </div>
             </div>

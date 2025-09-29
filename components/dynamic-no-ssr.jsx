@@ -47,18 +47,6 @@ export const MermaidRendererNoSSR = dynamic(
   }
 );
 
-// Excalidraw 渲染器 - 完全客户端渲染
-export const ExcalidrawRendererNoSSR = dynamic(
-  () => import('./excalidraw-renderer'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-64 bg-muted/20 rounded-lg">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-);
 
 // CodeMirror 编辑器 - 完全客户端渲染
 export const MermaidEditorNoSSR = dynamic(

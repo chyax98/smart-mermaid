@@ -34,7 +34,6 @@ export const useAppStore = create(
       // ========== UI状态 ==========
       ui: {
         isLeftPanelCollapsed: false,
-        renderMode: 'excalidraw',
         isGenerating: false,
         isFixing: false,
         showSettingsDialog: false,
@@ -128,13 +127,6 @@ export const useAppStore = create(
         ui: { ...state.ui, isLeftPanelCollapsed: !state.ui.isLeftPanelCollapsed }
       })),
 
-      setRenderMode: (mode) => set((state) => ({
-        ui: { ...state.ui, renderMode: mode }
-      })),
-
-      toggleRenderMode: () => set((state) => ({
-        ui: { ...state.ui, renderMode: state.ui.renderMode === 'excalidraw' ? 'mermaid' : 'excalidraw' }
-      })),
 
       setIsGenerating: (isGenerating) => set((state) => ({
         ui: { ...state.ui, isGenerating }
@@ -270,7 +262,6 @@ export const useAppStore = create(
         },
         ui: {
           isLeftPanelCollapsed: state.ui.isLeftPanelCollapsed,
-          renderMode: state.ui.renderMode,
         },
         config: state.config,
       }),
@@ -307,8 +298,6 @@ export const useEditorActions = () => useAppStore((state) => ({
 
 export const useUIActions = () => useAppStore((state) => ({
   toggleLeftPanel: state.toggleLeftPanel,
-  setRenderMode: state.setRenderMode,
-  toggleRenderMode: state.toggleRenderMode,
   setIsGenerating: state.setIsGenerating,
   setIsFixing: state.setIsFixing,
   setShowSettingsDialog: state.setShowSettingsDialog,
