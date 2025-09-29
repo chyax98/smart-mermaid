@@ -44,8 +44,12 @@ import { toast } from "sonner";
 import { historyManager, defaultHistoryManager } from '@/lib/history-manager';
 import { useAppStore } from '@/stores/app-store';
 
-const HistoryDialog = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const HistoryDialog = ({ children, isOpen, onClose }) => {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  
+  // 如果有外部控制，使用外部状态；否则使用内部状态
+  const dialogIsOpen = isOpen !== undefined ? isOpen : internalIsOpen;
+  const setIsOpen = onClose !== undefined ? onClose : setInternalIsOpen;
   const [activeTab, setActiveTab] = useState('records');
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
@@ -457,7 +461,7 @@ const HistoryDialog = ({ children }) => {
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={dialogIsOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           {children}
         </DialogTrigger>

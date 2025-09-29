@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -9,16 +9,39 @@ import { Wand2, PanelLeftClose, PanelLeftOpen, Monitor, FileImage, RotateCcw, Ma
 import { Header } from "@/components/header";
 import { UndoRedoControls } from "@/components/undo-redo-controls";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { SettingsDialog } from "@/components/settings-dialog";
 import { TemplateSelector } from "@/components/template-selector";
-import { BatchProcessDialog } from "@/components/batch-process-dialog";
-import { HistoryDialog } from "@/components/history-dialog";
 import { historyManagerService } from "@/lib/history-manager";
 import { TextInput } from "@/components/text-input";
 import { FileUpload } from "@/components/file-upload";
 import { DiagramTypeSelector } from "@/components/diagram-type-selector";
 import { ModelSelector } from "@/components/model-selector";
-import { MermaidEditor } from "@/components/mermaid-editor";
+import { generateMermaidFromText } from "@/lib/ai-service";
+import { isWithinCharLimit } from "@/lib/utils";
+import { isPasswordVerified, hasCustomAIConfig, hasUnlimitedAccess } from "@/lib/config-service";
+import { autoFixMermaidCode, toggleMermaidDirection } from "@/lib/mermaid-fixer";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import dynamic from "next/dynamic";
+
+// 导入水合安全包装器
+import HydrationSafeWrapper from "@/components/hydration-safe-wrapper";
+
+// 导入动态组件（完全禁用SSR）
+import { 
+  BatchProcessDialogNoSSR,
+  HistoryDialogNoSSR,
+  SettingsDialogNoSSR,
+  MermaidRendererNoSSR,
+  ExcalidrawRendererNoSSR,
+  MermaidEditorNoSSR
+} from "@/components/dynamic-no-ssr";
+
 // 动态导入RendererWrapper组件以优化性能
 const RendererWrapper = dynamic(
   () => import("@/components/renderer-wrapper"),
@@ -34,19 +57,6 @@ const RendererWrapper = dynamic(
     )
   }
 );
-import { generateMermaidFromText } from "@/lib/ai-service";
-import { isWithinCharLimit } from "@/lib/utils";
-import { isPasswordVerified, hasCustomAIConfig, hasUnlimitedAccess } from "@/lib/config-service";
-import { autoFixMermaidCode, toggleMermaidDirection } from "@/lib/mermaid-fixer";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import dynamic from "next/dynamic";
 
 // Import Zustand store and hooks
 import { 
@@ -57,7 +67,8 @@ import {
   useUsageState,
   useEditorActions,
   useUIActions,
-  useHistoryActions
+  useHistoryActions,
+  rehydrateStore
 } from "@/stores/app-store";
 import { useHydration } from "@/hooks/use-store";
 
@@ -93,6 +104,9 @@ const getRemainingUsage = () => {
 };
 
 export default function Home() {
+  // Next.js 15 hydration 修复
+  const [isMounted, setIsMounted] = useState(false);
+  
   // 检查是否已完成hydration
   const hydrated = useHydration();
   
@@ -131,8 +145,16 @@ export default function Home() {
   const setRemainingUsage = useAppStore((state) => state.setRemainingUsage);
   const setAIConfig = useAppStore((state) => state.setAIConfig);
 
+  // 设置mounted状态 - Next.js 15 hydration修复
   useEffect(() => {
-    if (!hydrated) return;
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || !isMounted) return;
+    
+    // 手动触发store rehydration（SSR安全）
+    rehydrateStore();
     
     // Update remaining usage count on component mount
     setRemainingUsage(getRemainingUsage());
@@ -154,7 +176,8 @@ export default function Home() {
     return () => {
       historyManagerService.stopAutoSave();
     };
-  }, [hydrated, setRemainingUsage, setPasswordVerified, setAIConfig]);
+  }, [hydrated, isMounted, setRemainingUsage, setPasswordVerified, setAIConfig]);
+
 
   const handleTextChange = useCallback((text) => {
     setInputText(text);
@@ -354,17 +377,19 @@ export default function Home() {
     enabled: hydrated,
   });
 
-  // 如果还没有hydrate，返回loading状态
-  if (!hydrated) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  // 使用水合安全包装器替代手动检查
+  const loadingFallback = (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-sm text-muted-foreground">正在加载应用...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <HydrationSafeWrapper fallback={loadingFallback}>
+      <div className="flex flex-col h-screen overflow-hidden">
       <Header 
         remainingUsage={usage.remainingUsage}
         usageLimit={usageLimit}
@@ -444,7 +469,7 @@ export default function Home() {
                   
                   {/* 编辑器区域 - 占用剩余空间 */}
                   <div className="flex-1 min-h-0">
-                    <MermaidEditor
+                    <MermaidEditorNoSSR
                       code={editor.mermaidCode}
                       onChange={handleMermaidCodeChange}
                       streamingContent={editor.streamingContent}
@@ -624,9 +649,9 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Settings Dialog */}
-      <SettingsDialog 
-        open={ui.showSettingsDialog} 
+      {/* Settings Dialog - 使用无SSR版本 */}
+      <SettingsDialogNoSSR 
+        open={ui?.showSettingsDialog || false} 
         onOpenChange={setShowSettingsDialog}
         onPasswordVerified={handlePasswordVerified}
         onConfigUpdated={handleConfigUpdated}
@@ -634,24 +659,24 @@ export default function Home() {
 
       {/* Template Selector Dialog */}
       <TemplateSelector 
-        isOpen={ui.showTemplateDialog}
+        isOpen={ui?.showTemplateDialog || false}
         onClose={() => setShowTemplateDialog(false)}
       />
 
-      {/* Batch Process Dialog */}
-      <BatchProcessDialog 
-        isOpen={ui.showBatchDialog}
+      {/* Batch Process Dialog - 使用无SSR版本 */}
+      <BatchProcessDialogNoSSR 
+        isOpen={ui?.showBatchDialog || false}
         onClose={() => setShowBatchDialog(false)}
       />
 
-      {/* History Dialog */}
-      <HistoryDialog 
-        isOpen={ui.showHistoryDialog}
+      {/* History Dialog - 使用无SSR版本 */}
+      <HistoryDialogNoSSR 
+        isOpen={ui?.showHistoryDialog || false}
         onClose={() => setShowHistoryDialog(false)}
       />
       
       {/* Usage Limit Dialog */}
-      <Dialog open={ui.showLimitDialog} onOpenChange={setShowLimitDialog}>
+      <Dialog open={ui?.showLimitDialog || false} onOpenChange={setShowLimitDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>使用次数已达上限</DialogTitle>
@@ -674,5 +699,6 @@ export default function Home() {
         </DialogContent>
       </Dialog>
     </div>
+    </HydrationSafeWrapper>
   );
 }

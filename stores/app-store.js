@@ -274,9 +274,18 @@ export const useAppStore = create(
         },
         config: state.config,
       }),
+      // SSR安全配置
+      skipHydration: true,
     }
   )
 )
+
+// 手动触发rehydration的方法（用于SSR安全）
+export const rehydrateStore = () => {
+  if (typeof window !== 'undefined') {
+    useAppStore.persist.rehydrate()
+  }
+}
 
 // 导出选择器钩子，用于优化组件订阅
 export const useEditorState = () => useAppStore((state) => state.editor)

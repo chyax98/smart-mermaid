@@ -495,4 +495,4 @@ function MermaidRenderer({ mermaidCode, onChange, onErrorChange }) {
 }
 
 // 使用 React.memo 优化性能，避免不必要的重渲染
-export const MermaidRenderer = React.memo(MermaidRenderer); 
+export default React.memo(MermaidRenderer); 

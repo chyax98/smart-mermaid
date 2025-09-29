@@ -40,8 +40,12 @@ import { toast } from "sonner";
 import { batchProcess, BATCH_STATUS, BATCH_TYPES } from '@/lib/batch-processor';
 import { templates } from '@/lib/templates';
 
-const BatchProcessDialog = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const BatchProcessDialog = ({ children, isOpen, onClose }) => {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  
+  // 如果有外部控制，使用外部状态；否则使用内部状态
+  const dialogIsOpen = isOpen !== undefined ? isOpen : internalIsOpen;
+  const setIsOpen = onClose !== undefined ? onClose : setInternalIsOpen;
   const [activeTab, setActiveTab] = useState('convert');
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
@@ -379,7 +383,7 @@ const BatchProcessDialog = ({ children }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={dialogIsOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>

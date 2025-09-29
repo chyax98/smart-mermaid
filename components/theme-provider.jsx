@@ -12,6 +12,9 @@ export function ThemeProvider({ children, defaultTheme = "light", storageKey = "
   const [theme, setTheme] = useState(defaultTheme);
 
   useEffect(() => {
+    // SSR安全检查
+    if (typeof window === 'undefined') return;
+    
     const savedTheme = localStorage.getItem(storageKey);
     
     if (savedTheme) {
@@ -22,6 +25,9 @@ export function ThemeProvider({ children, defaultTheme = "light", storageKey = "
   }, [storageKey]);
 
   useEffect(() => {
+    // SSR安全检查
+    if (typeof window === 'undefined') return;
+    
     document.documentElement.classList.toggle("dark", theme === "dark");
     localStorage.setItem(storageKey, theme);
   }, [theme, storageKey]);

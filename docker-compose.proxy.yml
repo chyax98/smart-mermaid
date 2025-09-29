@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8002:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    container_name: smart-mermaid-nginx
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smart-mermaid.rule=Host(`mermaid.chyax.site`)"
+      - "traefik.http.routers.smart-mermaid.tls=true"
+      - "traefik.http.routers.smart-mermaid.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smart-mermaid.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik"
+
+networks:
+  traefik:
+    external: true

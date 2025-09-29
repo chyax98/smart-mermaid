@@ -3,8 +3,6 @@ FROM node:18-alpine AS base
 
 # 安装依赖阶段
 FROM base AS deps
-# 检查 https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine 了解为什么可能需要 libc6-compat
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # 安装依赖基于你的首选包管理器

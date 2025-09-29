@@ -6,11 +6,11 @@ README.md
 .env
 .env.local
 .env.production.local
-.env.local
 .git
 .gitignore
 .vercel
 *.md
 .DS_Store
 Thumbs.db
-# 临时允许 .next 目录用于部署
+# 保留 .next 目录用于 standalone 构建
+# !.next
